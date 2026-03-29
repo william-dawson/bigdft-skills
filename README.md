@@ -36,6 +36,7 @@ Skills are invoked via `/bigdft:<skill-name>`.
 | `/bigdft:liborbs` | Developer guide for liborbs: localization regions, wavelet compression, views abstraction, operator application, and MPI/GPU. |
 | `/bigdft:atlab` | Developer guide for ATlab: simulation domains, grid cells, box iterators, multipoles, spherical harmonics, field I/O. |
 | `/bigdft:psolver` | Developer guide for PSolver: Poisson equation, Hartree potential, FFT algorithm, boundary conditions, implicit solvation, GPU. |
+| `/bigdft:projectors` | KB pseudopotential projectors: HGH radial functions, h_ij coupling matrix, psppar layout, normalization, computing nonlocal matrix elements. |
 
 ## Development
 

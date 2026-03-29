@@ -342,6 +342,69 @@ The boundary condition affects:
 - Grid bounding boxes
 - MPI communication patterns
 
+## Wavefunction I/O
+
+liborbs provides I/O for reading and writing orbital data (wavelet coefficients) to disk. BigDFT wraps these for its specific file formats.
+
+### Low-Level I/O (liborbs)
+
+```fortran
+use liborbs_io
+
+type(io_descriptor) :: iod
+
+! Open for writing
+call io_open(iod, 'wavefunction.bin', 'write')
+
+! Write one orbital's wavelet coefficients
+call io_write_orbital(iod, lr, psi_coeffs, iorb)
+
+! Close
+call io_close(iod)
+
+! Read back
+call io_open(iod, 'wavefunction.bin', 'read')
+call io_read_orbital(iod, lr, psi_coeffs, iorb)
+call io_close(iod)
+```
+
+### BigDFT Wavefunction Files
+
+BigDFT's linear scaling mode writes support functions to `minBasis.*` files in the data directory. These are read back via the `io` module in `bigdft/src/modules/io.f90`:
+
+```fortran
+use io
+
+! Write support functions (called at end of LS run)
+call writemywaves(iproc, filename, iformat, orbs, glr, psi, ...)
+
+! Read support functions (for restart or post-processing)
+call readmywaves_linear_new(iproc, filename, iformat, orbs, glr, psi, ...)
+```
+
+Each support function is stored as compressed wavelet coefficients in its localization region. The file also contains:
+- Orbital metadata (energies, occupations, spin)
+- Grid information (hgrids, localization region parameters)
+- Number of basis functions and their assignment to atoms
+
+### Cubic vs Linear Wavefunction Files
+
+**Linear scaling** (`minBasis.*`): Each orbital has its own localization region. The file stores per-orbital locreg descriptors and compressed coefficients.
+
+**Cubic scaling** (standard `wavefunction.*`): All orbitals share one global localization region. The file stores the global locreg once, then all orbital coefficients.
+
+Both formats use the same underlying `io_write_orbital` / `io_read_orbital` from liborbs. The difference is in how many localization regions are defined.
+
+### Coefficient Files
+
+In addition to the wavelet-space support functions, BigDFT can write the expansion coefficients (the matrix expressing KS orbitals in terms of support functions):
+
+```
+minBasis_coeff.bin  -- nbasis × nbasis × nspin coefficient matrix
+```
+
+These are written by `writeLinearCoefficients()` in `io.f90`.
+
 ## Work Arrays
 
 Pre-allocated memory for avoiding repeated allocation in iterative algorithms:
