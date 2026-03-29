@@ -338,8 +338,16 @@ skip = ["ntpoly"]
 
 ## Build Execution
 
-After writing the rcfile, run:
+After writing the rcfile, determine whether the source is a git checkout or a tarball. If the source directory contains a `.git` directory (or the individual packages like `futile/`, `bigdft/` contain `autogen.sh` but no `configure`), it is a developer build from git and needs autogen first.
 
+**For git checkouts (developer builds):**
+```bash
+cd FILL  # build directory
+FILL/Installer.py autogen -y
+FILL/Installer.py build -f FILL/custom.rc -y
+```
+
+**For tarballs:**
 ```bash
 cd FILL  # build directory
 FILL/Installer.py build -f FILL/custom.rc -y
