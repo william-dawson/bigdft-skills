@@ -31,6 +31,8 @@ Skills are invoked via `/bigdft:<skill-name>`.
 | `/bigdft:variables` | Add or modify input variables in BigDFT, CheSS, or PSolver. Full pipeline from YAML definition to Fortran access. |
 | `/bigdft:logfile` | Parse and analyze BigDFT logfile output. Extract energies, forces, eigenvalues, convergence data, and more. |
 | `/bigdft:systems` | Build and manipulate atomic systems with Atom, Fragment, and System classes. Structure I/O, fragmentation, and analysis. |
+| `/bigdft:pseudopotentials` | Set up pseudopotentials: Python API, command-line file copying, PSP formats, and electron count implications. |
+| `/bigdft:linear-scaling` | Configure linear scaling: lin_basis_params, ig_occupation, adding new elements, nbasis/rloc selection. |
 
 ## Development
 
