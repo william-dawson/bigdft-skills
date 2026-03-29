@@ -495,6 +495,8 @@ print(yaml.dump(dict(inp), default_flow_style=False))
 
 ### Python Example: Full Workflow with SystemCalculator
 
+**Always do a dry run first** to validate input and estimate memory before running the actual calculation. This catches errors like missing pseudopotentials, wrong atom counts, or insufficient memory before you wait in a queue.
+
 ```python
 from BigDFT.Inputfiles import Inputfile
 from BigDFT.Calculators import SystemCalculator
@@ -517,12 +519,20 @@ posinp = {
 }
 inp.set_atomic_positions(posinp)
 
-# Run
+# Dry run first -- validates input, estimates memory, does NOT run the calculation
+calc_dry = SystemCalculator(dry_run=True)
+log_dry = calc_dry.run(input=inp, name='water', run_dir='.')
+# log_dry.energy is NaN (no calculation performed)
+# Check the Memory Consumption Report in log_dry.log
+
+# If dry run succeeds, run for real
 calc = SystemCalculator()
 log = calc.run(input=inp, name='water', run_dir='.')
 print('Energy:', log.energy)
 print('Forces:', log.forces)
 ```
+
+The dry run uses `bigdft-tool -a memory-estimation` internally. It parses the input, sets up the grid, and reports memory requirements without performing the SCF. This is especially important before submitting to HPC queues via RemoteManager.
 
 ### Python Example: Remove an Action
 
@@ -720,3 +730,4 @@ inp.load(profile='linear')
 - The `(ABINIT)` suffix on ixc (e.g., `PBE (ABINIT)`) selects the ABINIT flavor of the functional, needed for some features like dispersion.
 - Units: BigDFT works internally in atomic units (bohr, hartree). Positions can use angstroem or atomic.
 - Time unit: 1 a.u. of time ~ 0.02419 fs. A timestep of 20.67 a.u. ~ 0.5 fs.
+- **Always validate with a dry run** (`SystemCalculator(dry_run=True)`) before submitting real calculations, especially on HPC systems. It catches input errors and estimates memory in seconds.

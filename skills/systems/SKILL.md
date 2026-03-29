@@ -455,6 +455,8 @@ fview = sys.fragment_view(purities, bond_orders)
 
 ## Running Calculations
 
+**Always dry run first** to validate input before running the real calculation:
+
 ```python
 from BigDFT.Calculators import SystemCalculator
 from BigDFT.Inputfiles import Inputfile
@@ -468,12 +470,13 @@ inp.set_hgrid(0.4)
 posinp = sys.get_posinp(units='angstroem')
 inp.set_atomic_positions(posinp)
 
-# Run
+# Dry run: validates input, estimates memory, catches errors fast
+calc_dry = SystemCalculator(dry_run=True)
+log_dry = calc_dry.run(input=inp, name='calc', run_dir='.')
+
+# Real run (only after dry run succeeds)
 calc = SystemCalculator()
 log = calc.run(input=inp, name='calc', run_dir='.')
-
-# Or run with posinp as separate argument
-log = calc.run(input=inp, posinp=posinp, name='calc', run_dir='.')
 
 # Get energy and forces
 print(log.energy)

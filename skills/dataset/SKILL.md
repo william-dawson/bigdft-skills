@@ -527,6 +527,26 @@ ds_new = Dataset(function=new_func, url=url,
 ds_new.copy_runners(ds_old)  # copies all runner args
 ```
 
+## Dry Run Before Remote Submission
+
+**Before submitting BigDFT calculations to a remote HPC system, always validate locally with a dry run.** This catches input errors, missing pseudopotentials, and incorrect parameters in seconds instead of discovering them after waiting in a queue.
+
+If the Dataset function runs BigDFT, structure it so you can test locally first:
+
+```python
+from BigDFT.Calculators import SystemCalculator
+
+# Test locally with dry run before creating the Dataset
+calc_dry = SystemCalculator(dry_run=True)
+log_dry = calc_dry.run(input=inp, name='test', run_dir='local_test')
+# If this fails, fix the input before submitting remotely
+
+# Only after dry run passes, create the remote Dataset
+ds = Dataset(function=my_bigdft_func, url=url, ...)
+```
+
+For functions that aren't easily testable locally (e.g., they depend on remote-only software), at minimum verify that the input files are well-formed before `ds.run()`.
+
 ## Notes
 
 - `skip=True` (default) means reinitializing a Dataset with the same function and name will restore state from the database file. Set `skip=False` to force a fresh start.
