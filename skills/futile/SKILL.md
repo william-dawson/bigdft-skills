@@ -202,13 +202,30 @@ Section:
 
 ### Sequences (Lists)
 
+Each item in a sequence must be preceded by `yaml_sequence(advance='no')`:
+
 ```fortran
 call yaml_sequence_open('Items')
   call yaml_sequence(advance='no')
-    call yaml_map('name', 'first')
+    call yaml_mapping_open()
+      call yaml_map('name', 'first')
+      call yaml_map('value', 1)
+    call yaml_mapping_close()
   call yaml_sequence(advance='no')
-    call yaml_map('name', 'second')
+    call yaml_mapping_open()
+      call yaml_map('name', 'second')
+      call yaml_map('value', 2)
+    call yaml_mapping_close()
 call yaml_sequence_close()
+```
+
+Produces:
+```yaml
+Items:
+- name: first
+  value: 1
+- name: second
+  value: 2
 ```
 
 ### Comments and Documents
@@ -228,6 +245,8 @@ call yaml_dict_dump(dict)                     ! to stdout
 call yaml_dict_dump(dict, unit=unt)           ! to file unit
 call yaml_dict_dump(dict, flow=.true.)        ! compact style
 ```
+
+**Note:** `yaml_dict_dump` writes into the current YAML stream. If called inside an already-open mapping, the output merges into that context. For clean standalone output, call it outside of any open mapping/sequence.
 
 ## YAML Parsing
 
@@ -671,3 +690,30 @@ end subroutine
 | Timer | `t0 = f_time()` ... `elapsed = f_time() - t0` |
 | Profile timing | `call f_profile(cat_id)` ... `call f_profile_end(cat_id)` |
 | MPI allreduce | `call fmpi_allreduce(buf, op=FMPI_SUM)` |
+
+## Compiling Against Futile
+
+After building BigDFT (or just futile), use pkg-config:
+
+```bash
+source <build-dir>/install/bin/bigdftvars.sh
+
+# Compile a standalone program
+mpifort -o myprogram myprogram.f90 \
+  -I$(pkg-config --variable=includedir futile) \
+  $(pkg-config --cflags --libs futile)
+```
+
+The `includedir` flag is needed because `futile.mod` is in `<prefix>/include/` while pkg-config's `--cflags` points to `<prefix>/include/futile/` (which contains C headers). Both include paths are required.
+
+For a Makefile:
+
+```makefile
+FC = mpifort
+INCDIR = $(shell pkg-config --variable=includedir futile)
+FCFLAGS = -O2 -fopenmp -I$(INCDIR) $(shell pkg-config --cflags futile)
+LDFLAGS = $(shell pkg-config --libs futile)
+
+%: %.f90
+	$(FC) $(FCFLAGS) -o $@ $< $(LDFLAGS)
+```
