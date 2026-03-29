@@ -28,6 +28,7 @@ Skills are invoked via `/bigdft:<skill-name>`.
 | `/bigdft:remote` | Set up a remote connection to an HPC system (URL/Computer, SSH, SLURM templates). |
 | `/bigdft:dataset` | Create and manage RemoteManager Dataset workflows for remote execution of Python functions. |
 | `/bigdft:futile` | Developer guide for the Futile library: dictionaries, memory management, YAML I/O, error handling, timing, MPI wrappers. |
+| `/bigdft:variables` | Add or modify input variables in BigDFT, CheSS, or PSolver. Full pipeline from YAML definition to Fortran access. |
 
 ## Development
 
