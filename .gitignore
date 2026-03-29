@@ -8,3 +8,8 @@ bigdft-suite/
 *.swp
 *.swo
 *~
+
+# Compiled test drivers
+test_drivers/test_*
+!test_drivers/test_*.f90
+test_drivers/*.dSYM/
