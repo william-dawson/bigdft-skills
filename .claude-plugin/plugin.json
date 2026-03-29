@@ -1,6 +1,6 @@
 {
   "name": "bigdft",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "Skills for working with the BigDFT electronic structure code - setup, input generation, output parsing, and PyBigDFT workflows.",
   "author": {
     "name": "William Dawson"
