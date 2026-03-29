@@ -27,6 +27,7 @@ Skills are invoked via `/bigdft:<skill-name>`.
 | `/bigdft:input` | Generate BigDFT input files (YAML or Python). Walks through calculation type, system, DFT parameters, and advanced options. |
 | `/bigdft:remote` | Set up a remote connection to an HPC system (URL/Computer, SSH, SLURM templates). |
 | `/bigdft:dataset` | Create and manage RemoteManager Dataset workflows for remote execution of Python functions. |
+| `/bigdft:futile` | Developer guide for the Futile library: dictionaries, memory management, YAML I/O, error handling, timing, MPI wrappers. |
 
 ## Development
 
