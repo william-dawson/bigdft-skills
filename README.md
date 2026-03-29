@@ -33,6 +33,7 @@ Skills are invoked via `/bigdft:<skill-name>`.
 | `/bigdft:systems` | Build and manipulate atomic systems with Atom, Fragment, and System classes. Structure I/O, fragmentation, and analysis. |
 | `/bigdft:pseudopotentials` | Set up pseudopotentials: Python API, command-line file copying, PSP formats, and electron count implications. |
 | `/bigdft:linear-scaling` | Configure linear scaling: lin_basis_params, ig_occupation, adding new elements, nbasis/rloc selection. |
+| `/bigdft:liborbs` | Developer guide for liborbs: localization regions, wavelet compression, views abstraction, operator application, and MPI/GPU. |
 
 ## Development
 
