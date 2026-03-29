@@ -110,39 +110,23 @@ Which BLAS/LAPACK implementation should I link against?
   5. Custom (provide linker flags)
 ```
 
-### 5 -- What to build
+### 5 -- Anything beyond the default?
+
+By default, build `bigdft` with standard optimization (`-O2`). Do **not** ask about modules, optimization flags, or optional features unless the user brings them up. Instead, ask a single open-ended question:
 
 ```
-Which modules do you want to build?
-  1. bigdft only (default)
-  2. Full suite including spred
-  3. CheSS only (chess-suite)
-  4. Custom selection (futile, atlab, chess, liborbs, psolver, bigdft, spred, PyBigDFT)
+I'll build bigdft with -O2 optimization. Any custom requirements?
+(e.g. also build spred, enable GPU support, debug flags, etc.)
 ```
 
-### 6 -- Optional features
+If they say no, proceed with defaults. If they mention specifics, handle accordingly:
 
-```
-Enable any optional features?
-  - GPU support: CUDA and/or OpenCL  (I detected: <detected>)
-  - Python bindings (PyBigDFT)
-  - Testing suite
-  - Dynamic libraries
-```
+- **Modules**: default is `['bigdft']`. Other options: `['spred']` (full suite), `['chess']` (CheSS only), or any subset of: futile, atlab, chess, liborbs, psolver, bigdft, spred, PyBigDFT, bigdft-client.
+- **GPU**: add CUDA (`--enable-cuda-gpu`) and/or OpenCL (`--enable-opencl`) flags. Only mention if hardware was detected in pre-flight.
+- **Optimization**: `-O2` is default. `-O3` for aggressive, `-O0 -g -fbounds-check -fbacktrace` for debug.
+- **Optional features**: Python bindings (`conditions.add("python")`), testing (`conditions.add("testing")`), dynamic libraries (`--enable-dynamic-libraries`).
 
-Only mention CUDA/OpenCL if hardware was detected.
-
-### 7 -- Optimization flags
-
-```
-Which optimization level?
-  1. Standard (-O2)  [recommended]
-  2. Aggressive (-O3)
-  3. Debug (-O0 -g -fbounds-check -fbacktrace)
-  4. Custom
-```
-
-For GCC >= 10, always add `-fallow-argument-mismatch` to FCFLAGS.
+For GCC >= 10, always add `-fallow-argument-mismatch` to FCFLAGS regardless of what the user asks for.
 
 ## rcfile Generation
 
