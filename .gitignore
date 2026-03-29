@@ -1,0 +1,10 @@
+# BigDFT suite clone (reference only, not part of this repo)
+bigdft-suite/
+
+# OS
+.DS_Store
+
+# Editor
+*.swp
+*.swo
+*~

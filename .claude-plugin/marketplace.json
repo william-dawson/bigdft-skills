@@ -1,0 +1,14 @@
+{
+  "name": "bigdft-skills",
+  "owner": {
+    "name": "william-dawson"
+  },
+  "plugins": [
+    {
+      "name": "bigdft",
+      "version": "0.1.0",
+      "description": "Skills for working with the BigDFT electronic structure code - setup, input generation, output parsing, and PyBigDFT workflows."
+    }
+  ],
+  "keywords": ["bigdft", "dft", "electronic-structure", "pybigdft", "computational-chemistry", "wavelets"]
+}

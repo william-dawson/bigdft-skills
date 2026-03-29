@@ -1,0 +1,31 @@
+# bigdft-skills
+
+> **Warning:** This plugin is under active development and not yet ready for general use. Skills may be incomplete, produce incorrect input, or change without notice. Use at your own risk.
+
+A Claude Code plugin providing skills for working with the [BigDFT](https://bigdft.org) electronic structure code.
+
+## Installation
+
+```
+/plugin marketplace add william-dawson/bigdft-skills
+/plugin install bigdft@bigdft-skills
+```
+
+Or test locally:
+
+```
+claude --plugin-dir /path/to/bigdft-skills
+```
+
+## Skills
+
+Skills are invoked via `/bigdft:<skill-name>`.
+
+| Skill | Description |
+|-------|-------------|
+| `/bigdft:install` | Guide installation of BigDFT from source. Detects platform/compilers, generates an rcfile, and walks through the build. |
+| `/bigdft:input` | Generate BigDFT input files (YAML or Python). Walks through calculation type, system, DFT parameters, and advanced options. |
+
+## Development
+
+The `bigdft-suite/` directory contains a clone of the BigDFT source for reference during skill development. It is gitignored and not part of this repository.
