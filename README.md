@@ -34,6 +34,7 @@ Skills are invoked via `/bigdft:<skill-name>`.
 | `/bigdft:pseudopotentials` | Set up pseudopotentials: Python API, command-line file copying, PSP formats, and electron count implications. |
 | `/bigdft:linear-scaling` | Configure linear scaling: lin_basis_params, ig_occupation, adding new elements, nbasis/rloc selection. |
 | `/bigdft:liborbs` | Developer guide for liborbs: localization regions, wavelet compression, views abstraction, operator application, and MPI/GPU. |
+| `/bigdft:atlab` | Developer guide for ATlab: simulation domains, grid cells, box iterators, multipoles, spherical harmonics, field I/O. |
 
 ## Development
 
