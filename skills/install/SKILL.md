@@ -148,11 +148,10 @@ moduleset = 'suite'
 # Skip system-provided packages
 skip = FILL  # e.g. ["PyYAML", "libyaml"]
 
-# Conditions
-# FILL: add conditions as needed
-# conditions.add("testing")     # enable test suite
-# conditions.add("python")      # enable Python bindings
-# conditions.add("no_upstream") # skip upstream dependencies
+# Conditions -- leave ALL commented out unless the user explicitly requests them
+# conditions.add("testing")     # only if user wants to run tests
+# conditions.add("python")      # only if user explicitly asks for Python/PyGObject bindings
+# conditions.add("no_upstream") # only if user wants to skip upstream dependencies
 
 def env_configuration():
     '''Configure compilers and flags for autotools packages.'''
