@@ -14,6 +14,8 @@ Help the user build BigDFT from source using the `Installer.py` wrapper around j
 Before asking any questions, silently run these commands and record the results:
 
 ```bash
+ls ./Installer.py ../Installer.py ../bigdft-suite/Installer.py ./bigdft-suite/Installer.py ~/bigdft-suite/Installer.py 2>/dev/null  # find source
+pwd                  # current directory
 uname -s -m          # OS and architecture
 hostname             # for matching existing rcfiles
 which mpifort mpif90 mpicc gfortran gcc ifort ifx icx 2>/dev/null
@@ -48,6 +50,14 @@ OpenCL avail:    ___  (yes / no)
 ## Questions
 
 ### 1 -- Source location
+
+Before asking, check whether the current working directory (or a nearby directory) already contains `Installer.py`. Also check common locations like `../bigdft-suite`, `./bigdft-suite`, and `$HOME/bigdft-suite`. If you find it, confirm with the user rather than asking from scratch:
+
+```
+I see bigdft-suite at <path>. Is that the one you want to build?
+```
+
+Only if nothing is found, ask:
 
 ```
 Where is the bigdft-suite source directory?
