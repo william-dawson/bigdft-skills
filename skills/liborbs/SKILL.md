@@ -144,6 +144,23 @@ mv%manager ! → wvf_manager (resources)
 mv%c       ! Memory buffer with mesh values
 ```
 
+## Wavefunction Normalization
+
+BigDFT stores wavefunctions in two representations with the same normalization convention:
+
+- **Daubechies wavelet coefficients** (`psi_daub`): `sum(psi_daub²) = 1`
+- **ISF mesh values** (`psi_mesh`): `sum(psi_mesh²) = 1`
+
+**Neither is the physical normalization.** The physical wavefunction satisfying `∫|ψ|² dr = 1` is:
+
+```
+ψ_physical(r) = psi_mesh(r) / sqrt(volume_element)
+```
+
+where `volume_element = hx * hy * hz` (product of ISF grid spacings, typically `(hgrid/2)³`).
+
+This convention means `sum(psi_mesh²) * volume_element ≠ 1` -- it equals `volume_element`. The normalization is baked into the operators so that physical energies come out correctly (see Operator Application below), but you must account for it when forming physical densities for PSolver or when computing quantities manually on the mesh.
+
 ## Creating and Using Views
 
 ### From Existing Data
@@ -167,9 +184,29 @@ call wvf_view_release(mv)
 ```fortran
 ! Wavelet → mesh (for applying real-space potential)
 mv = wvf_daub_to_mesh(dv)
+! or equivalently via the store variant:
+mv = wvf_view_to_mesh(dv, store=.true.)  ! store=.true. needed if applying kinetic operator after
 
 ! Mesh → wavelet (after applying potential)
 dv = wvf_mesh_to_daub(mv)
+! or:
+dv = wvf_view_to_daub(mv)
+```
+
+Mesh data is accessible in `mv%c%mem(:,1)` with shape `(ndim_mesh, nspinor)`.
+
+### Memory Management
+
+Use a fresh `wvf_manager` for each orbital conversion to avoid exhausting the internal buffer pool (the manager has a limited number of memory buffers):
+
+```fortran
+do iorb = 1, norb
+  mgr = wvf_manager_new(nspinor=1)
+  dv = wvf_view_on_daub(mgr, glr, psi(:, iorb))
+  mv = wvf_view_to_mesh(dv, store=.true.)
+  ! ... use mv ...
+  call wvf_deallocate_manager(mgr)
+end do
 ```
 
 ## Operator Application
@@ -186,22 +223,45 @@ use liborbs_operators
 real(gp) :: ekin
 
 ! Apply kinetic operator: mesh_in → daub_out
-! Returns kinetic energy contribution
+! Returns kinetic energy contribution via ekin
 dv_out = wvf_kinetic_operator(mv_in, ekin=ekin)
 ```
 
-The kinetic operator takes a mesh view as input (because it needs real-space derivatives) and returns wavelet coefficients.
+The kinetic operator takes a mesh view as input and returns wavelet coefficients. The `ekin` output gives the correct physical kinetic energy `⟨ψ|T|ψ⟩`.
+
+**Important: the wavelet kinetic operator includes the identity.** When computing off-diagonal matrix elements via dot products of wavelet coefficients:
+
+```
+dot(psi_n_daub, T_psi_m_daub) = T_{nm} + delta_{nm}
+```
+
+To extract the kinetic matrix element, subtract the Kronecker delta:
+
+```fortran
+T_nm = wpdot_keys(..., psi_n, T_psi_m) - delta_nm
+! where delta_nm = 1 if n==m, 0 otherwise
+```
+
+This is because BigDFT's wavelet kinetic convolution is `(1 + T)` rather than bare `T`. The diagonal `ekin` output already accounts for this (it subtracts the identity contribution).
 
 ### Potential Energy
 
 Apply a local real-space potential `V(r)`:
 
 ```fortran
-! pot is the potential on the fine grid
+! pot is the potential on the fine grid, in physical units (Hartree)
 ! Returns potential energy contribution
 real(gp) :: epot
 dv_out = wvf_potential_operator(mv_in, pot, epot=epot)
 ```
+
+The potential energy `⟨ψ|V|ψ⟩` is computed internally as:
+
+```
+⟨ψ|V|ψ⟩ = sum(V(r) * psi_mesh(r)²)
+```
+
+No volume element factor is needed in this formula because of BigDFT's normalization convention (`sum(psi_mesh²) = 1`). The potential `V` is in physical units (Hartree) evaluated at ISF grid points. The `epot` output gives the result directly.
 
 ### Combined Hamiltonian
 
@@ -244,6 +304,39 @@ dot = wpdot_keys(nvctr_c, nvctr_f, nseg_c, nseg_f, &
 ```
 
 For orbitals in the same localization region (same compression), this is a simple dot product. For orbitals in different regions, the key-based product handles the index mapping.
+
+## Multipole-Preserving Quadrature (scfdotf)
+
+The function `scfdotf` from the `multipole_preserving` module computes the 1D overlap between an ISF basis function at grid point `j` and a Gaussian:
+
+```
+scfdotf(j, hgrid, pgauss, x0, pow) = ∫ ISF_j(τ) · (τ·h - x0)^pow · exp(-pgauss · (τ·h - x0)²) dτ
+```
+
+where:
+- `j` is a **0-based** grid index
+- `hgrid` is the ISF grid spacing
+- `pgauss` is the Gaussian exponent (e.g., `1/(2·sigma²)`)
+- `x0` is the center position in physical units
+- `pow` is the polynomial power
+
+The result is in **grid units**. To match BigDFT's normalization convention (`sum(c²) = 1`), multiply each 1D overlap by `sqrt(hgrid)`:
+
+```fortran
+use multipole_preserving, only: scfdotf
+
+scf_x(j) = scfdotf(j-1, hx, pgauss, x0, 0) * sqrt(hx)
+```
+
+For a 3D separable Gaussian, the ISF representation is:
+
+```fortran
+proj_isf(ind) = normalization * scf_x(j1) * scf_y(j2) * scf_z(j3)
+```
+
+This can be converted to the Daubechies basis via `wvf_view_to_daub` for wavelet-space dot products.
+
+**Note on BigDFT defaults:** BigDFT's default for the local ionic potential is `multipole_preserving: No`, meaning direct evaluation at grid points rather than scfdotf. For nonlocal projectors, BigDFT uses `PROJECTION_1D_SEPARABLE` which projects Gaussians directly to wavelets via tensor products -- a different (more accurate) code path than the scfdotf -> ISF -> Daubechies approach.
 
 ## Compression Details
 
@@ -346,7 +439,41 @@ The boundary condition affects:
 
 liborbs provides I/O for reading and writing orbital data (wavelet coefficients) to disk. BigDFT wraps these for its specific file formats.
 
-### Low-Level I/O (liborbs)
+### Reading Wavefunctions via io_descriptor
+
+The preferred approach for reading BigDFT wavefunction files:
+
+```fortran
+use liborbs_io
+
+type(io_descriptor) :: descr
+type(locreg_descriptors) :: glr
+real(f_double), dimension(:), allocatable :: psi
+real(f_double) :: eigenvalue
+integer :: norb, ndim_psi
+logical :: lstat
+
+! Read metadata and set up global locreg (including compression keys)
+descr = io_descriptor_from_file('data/wavefunction.yaml')
+call copy_locreg_descriptors(descr%glr, glr)
+
+! Number of orbitals
+norb = dict_len(descr%funcs)
+
+! Size of wavelet coefficient array per orbital
+ndim_psi = array_dim(glr)  ! = nvctr_c + 7 * nvctr_f
+
+! Allocate and read each orbital
+allocate(psi(ndim_psi))
+do iorb = 1, norb
+  call io_descr_read_phi(descr, psi, eigenvalue, iorb, glr, lstat)
+  ! psi now contains Daubechies wavelet coefficients for orbital iorb
+end do
+```
+
+### Low-Level I/O
+
+For direct file access without the descriptor:
 
 ```fortran
 use liborbs_io
@@ -386,6 +513,16 @@ Each support function is stored as compressed wavelet coefficients in its locali
 - Orbital metadata (energies, occupations, spin)
 - Grid information (hgrids, localization region parameters)
 - Number of basis functions and their assignment to atoms
+
+### Wavefunction YAML Units
+
+The `units` field in `wavefunction.yaml` may be `'angstroem'` even though BigDFT works in bohr internally. Always check and convert atomic positions:
+
+```fortran
+if (trim(units_str) == 'angstroem') then
+  pos = pos / 0.52917721092_f_double
+end if
+```
 
 ### Cubic vs Linear Wavefunction Files
 

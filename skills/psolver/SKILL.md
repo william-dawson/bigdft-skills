@@ -427,6 +427,52 @@ opt%potential_integral ! Offset for periodic BC
 | `scaling_function.f90` | ISF basis for free BC kernel |
 | `gpu_fft_interfaces.f90` | GPU FFT dispatch (CUDA, SYCL) |
 
+## Density Normalization Convention
+
+PSolver expects **physical density** (charge per volume). BigDFT's wavefunction mesh values use a grid normalization where `sum(psi_mesh²) = 1` (see liborbs skill). To form the physical density for PSolver from mesh wavefunctions:
+
+```fortran
+rho_physical(r) = psi_mesh(r)² / volume_element
+```
+
+where `volume_element = hx * hy * hz` (product of ISF grid spacings, typically `(hgrid/2)³`). This ensures `sum(rho_physical) * volume_element = total_charge`.
+
+PSolver returns the electrostatic potential in physical units (Hartree) and `ehartree = ½ ∫ ρ V dr`.
+
+## Two-Electron Integrals via PSolver
+
+PSolver can be used to compute two-electron repulsion integrals `(ij|kl)` in the Mulliken notation:
+
+```
+(ij|kl) = ∫∫ φ_i(r₁)φ_j(r₁) · 1/|r₁-r₂| · φ_k(r₂)φ_l(r₂) dr₁ dr₂
+```
+
+### Algorithm
+
+For a given pair (i,j):
+
+1. **Form the pair density** (physical units):
+```fortran
+rho_ij(r) = phi_i_mesh(r) * phi_j_mesh(r) / volume_element
+```
+
+2. **Solve Poisson** -- the density array is overwritten with the potential:
+```fortran
+call H_potential('G', kernel, rho_ij, pot_dummy, eh_ij, offset, .false., quiet='yes')
+! rho_ij now contains V_ij (the Coulomb potential of ρ_ij)
+```
+
+3. **Integrate against pair (k,l)** -- no additional volume element factor:
+```fortran
+eri_ijkl = sum(V_ij(r) * phi_k_mesh(r) * phi_l_mesh(r))
+```
+
+The volume element factors cancel between steps 1 and 3 due to BigDFT's normalization convention.
+
+### Optimization
+
+The Poisson solve (expensive) is done once per (i,j) pair. The integration against all (k,l) pairs is cheap (just grid sums). Combined with Cauchy-Schwarz screening, the cost scales as O(N²_significant) Poisson solves rather than O(N⁴).
+
 ## Notes
 
 - The density array is **overwritten** by the potential. If you need the density afterward, copy it before calling the solver.

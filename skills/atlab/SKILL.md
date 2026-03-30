@@ -494,6 +494,34 @@ call yaml_parse_from_file(posinp, 'input.yaml')
 call domain_set_from_dict(posinp // 'posinp', dom)
 ```
 
+## Grid Coordinate System
+
+### box_iter Coordinates
+
+The `box_iter` iterator uses **mesh-local coordinates** where the first grid point is at `(0, 0, 0)`. Grid point `j` (1-based) has coordinate `(j-1) * hgrid` in each dimension.
+
+BigDFT's global coordinate system is offset from the mesh-local system by the `nboxi` array:
+
+```
+rxyz_mesh = rxyz_global - nboxi(1,:) * mesh%hgrids
+```
+
+where `nboxi(1,:)` is the lower bound of the ISF grid in global grid units (typically negative for free boundary conditions, e.g., `[-14, -14, -14]`).
+
+**This offset must be applied** when converting atom positions from `wavefunction.yaml` (global coordinates) to mesh-local coordinates for use with `box_iter`. Without this conversion, atom-centered operations (projectors, local potentials) will be placed at the wrong grid location.
+
+```fortran
+! Convert atom position from global to mesh-local coordinates
+rxyz_local(1) = rxyz_global(1) - nboxi(1,1) * mesh%hgrids(1)
+rxyz_local(2) = rxyz_global(2) - nboxi(1,2) * mesh%hgrids(2)
+rxyz_local(3) = rxyz_global(3) - nboxi(1,3) * mesh%hgrids(3)
+
+! Now use rxyz_local as the origin for box_iter
+bit = box_iter(mesh, nbox=nbox, origin=rxyz_local)
+```
+
+The `nboxi` array can be obtained from the `locreg_descriptors` of the global localization region (`glr%nsi` gives the start indices).
+
 ## Notes
 
 - ATlab is a dependency of both liborbs and BigDFT. It must be built before either.
