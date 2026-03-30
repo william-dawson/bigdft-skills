@@ -554,8 +554,8 @@ inp.remove(A.optimize_geometry)
 | `rmult` | [5.0, 8.0] | [coarse, fine] radius multipliers |
 | `ixc` | 1 (LDA) | XC functional. Use string names: PBE, LDA, HF, PBE0 |
 | `gnrm_cv` | 1e-4 | SCF convergence (gradient norm). Use 1e-5 for forces. |
-| `itermax` | 50 | Max SCF iterations |
-| `nrepmax` | 1 | Re-diagonalization cycles. Use `accurate` for automatic. |
+| `itermax` | 50 | Max wavefunction optimization steps per cycle (subspace diag at end) |
+| `nrepmax` | 1 | Number of cycles (each = itermax optimization + subspace diag). See SCF cycle structure below. |
 | `ncong` | 6 | CG preconditioning iterations |
 | `idsx` | 6 | DIIS history length |
 | `qcharge` | 0 | System charge |
@@ -612,8 +612,8 @@ inp.remove(A.optimize_geometry)
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `iscf` | 0 | Mixing scheme. 0=direct minimization, 17=Pulay on density |
-| `norbsempty` | 0 | Extra empty bands |
-| `tel` | 0 | Electronic temperature (Ha) |
+| `norbsempty` | 0 | Extra empty (virtual) bands to include. See SCF cycle structure below. |
+| `tel` | 0 | Electronic temperature (Ha) for smearing |
 | `rpnrm_cv` | 1e-4 | Residue convergence |
 | `alphamix` | 0 | Mixing parameter |
 
@@ -716,6 +716,86 @@ import: linear
 Usage in Python:
 ```python
 inp.load(profile='linear')
+```
+
+## SCF Cycle Structure: itermax, nrepmax, and Virtual Orbitals
+
+BigDFT's SCF works in cycles. Understanding `itermax`, `nrepmax`, and `norbsempty` together is essential for hard-to-converge systems and for computing virtual orbitals.
+
+### The basic loop
+
+```
+for irep = 1 to nrepmax:
+    for iter = 1 to itermax:
+        optimize wavefunctions (gradient descent / DIIS)
+        check gnrm_cv convergence → break if converged
+    end
+    subspace diagonalization  ← reassigns occupations, mixes orbitals
+end
+```
+
+Each **cycle** consists of up to `itermax` wavefunction optimization steps followed by a **subspace diagonalization**. The subspace diagonalization builds the Hamiltonian matrix in the current orbital basis, diagonalizes it, and reorders/mixes the orbitals by eigenvalue. This is where occupation numbers get properly assigned.
+
+The process repeats for `nrepmax` cycles.
+
+### Default behavior (no virtual orbitals)
+
+By default, `norbsempty = 0` and `nrepmax = 1`. BigDFT only optimizes occupied orbitals, runs one cycle of up to `itermax` steps, does a final subspace diagonalization, and stops. This is sufficient for most ground-state calculations.
+
+### Why you need virtual orbitals
+
+There are two reasons to set `norbsempty > 0` in the `mix` section:
+
+1. **Hard-to-converge systems** (near-degenerate HOMO-LUMO, metals, open-shell): Including extra virtual orbitals in the optimization lets the subspace diagonalization properly shuffle electrons between nearly degenerate levels. Without them, the optimizer can oscillate because it doesn't have room to move electrons into the right orbitals.
+
+2. **You want to inspect virtual orbitals**: For post-processing (band gaps, spectral properties, etc.), you need unoccupied orbitals. Setting `norbsempty` produces them.
+
+### Why nrepmax matters with virtuals
+
+With virtual orbitals, `nrepmax > 1` is important because:
+- After the first cycle's subspace diagonalization, occupation numbers may change (electrons move between orbitals that were near the Fermi level)
+- The newly reordered orbitals need further optimization in the next cycle
+- Each cycle refines both the orbitals and their occupations
+
+For metallic or near-degenerate systems, use `nrepmax: accurate` (which auto-selects up to 10 cycles) or set it manually:
+
+```yaml
+dft:
+  gnrm_cv: 1.e-5
+  itermax: 50
+  nrepmax: 5
+mix:
+  norbsempty: 10
+  tel: 0.001       # small smearing helps convergence
+```
+
+### Example: Metallic system with smearing
+
+```yaml
+import: mixing
+dft:
+  ixc: PBE
+  hgrids: 0.4
+  itermax: 50
+  nrepmax: 10
+mix:
+  iscf: 17          # Pulay mixing on density
+  norbsempty: 20    # extra bands for the Fermi surface
+  tel: 0.01         # electronic temperature for smearing
+  alphamix: 0.5
+```
+
+### Example: Getting virtual orbitals for a molecule
+
+```yaml
+dft:
+  ixc: PBE
+  hgrids: 0.35
+  gnrm_cv: 1.e-5
+  itermax: 100
+  nrepmax: 3          # enough cycles to settle occupations
+mix:
+  norbsempty: 5       # 5 virtual orbitals
 ```
 
 ## Notes
