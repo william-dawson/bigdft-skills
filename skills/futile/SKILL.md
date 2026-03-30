@@ -162,7 +162,7 @@ val = (dict .get. 'maybe_key')
 
 ## YAML Output
 
-Futile can write structured YAML output directly from Fortran. This is used pervasively for logging and output.
+Futile can write structured YAML output directly from Fortran. This is used pervasively for logging and output. The output engine tracks indentation, nesting, and supports both **block style** (multi-line, human-readable) and **flow style** (compact, inline).
 
 ### Key-Value Pairs
 
@@ -178,6 +178,8 @@ call yaml_map('Name', 'water')
 ! With format control
 call yaml_map('Energy', -42.5d0, fmt='(f12.6)')
 ```
+
+`yaml_map` is a generic interface supporting scalars (integer, real, double, logical, character), 1D arrays (integer, double, character, logical), 2D arrays (integer, double), dictionaries, enumerators, and f_string types.
 
 ### Nested Mappings
 
@@ -228,23 +230,149 @@ Items:
   value: 2
 ```
 
-### Comments and Documents
+### Flow Style (Compact Inline Output)
+
+Flow style renders mappings as `{ }` and sequences as `[ ]` on a single line, similar to JSON. This is controlled by the `flow=.true.` parameter on `yaml_mapping_open`, `yaml_sequence_open`, and `yaml_dict_dump`.
+
+#### Flow Mappings
 
 ```fortran
-call yaml_comment('This is a comment')
-call yaml_comment('Section Header', hfill='~')  ! fills line with ~
-call yaml_new_document()
+call yaml_mapping_open('Atom', flow=.true.)
+  call yaml_map('symbol', 'O')
+  call yaml_map('charge', 6)
+  call yaml_map('mass', 15.999d0)
+call yaml_mapping_close()
+```
+
+Produces:
+```yaml
+Atom: { symbol: O, charge: 6, mass:  15.99900000000000 }
+```
+
+Commas between entries are inserted automatically. The closing `}` is added by `yaml_mapping_close`.
+
+#### Flow Sequences
+
+```fortran
+call yaml_sequence_open('Grid spacings', flow=.true.)
+  call yaml_sequence(yaml_toa(0.4d0))
+  call yaml_sequence(yaml_toa(0.4d0))
+  call yaml_sequence(yaml_toa(0.4d0))
+call yaml_sequence_close()
+```
+
+Produces:
+```yaml
+Grid spacings: [  0.4000000000000000,  0.4000000000000000,  0.4000000000000000 ]
+```
+
+#### Arrays Auto-Detect Flow
+
+When you pass an array to `yaml_map`, it automatically chooses flow style if the formatted result fits on one line (within the 95-character limit), or block style if it doesn't:
+
+```fortran
+call yaml_map('Short', (/1.0d0, 2.0d0, 3.0d0/))
+! Output: Short: [  1.000000000000000,  2.000000000000000,  3.000000000000000 ]
+
+call yaml_map('Long', very_large_array)
+! Output switches to block:
+! Long:
+!   -  1.000000000000000
+!   -  2.000000000000000
+!   ...
+```
+
+#### Nesting Flow Inside Block
+
+Flow can be used selectively for inner structures while the outer structure remains in block style:
+
+```fortran
+call yaml_mapping_open('Calculation')
+  call yaml_map('Method', 'PBE')
+  call yaml_mapping_open('Cell', flow=.true.)
+    call yaml_map('a', 10.0d0)
+    call yaml_map('b', 10.0d0)
+    call yaml_map('c', 20.0d0)
+  call yaml_mapping_close()
+  call yaml_map('Converged', .true.)
+call yaml_mapping_close()
+```
+
+Produces:
+```yaml
+Calculation:
+  Method: PBE
+  Cell: { a:  10.00000000000000, b:  10.00000000000000, c:  20.00000000000000 }
+  Converged: Yes
+```
+
+Once inside a flow context, all nested structures remain in flow style until the flow-level mapping or sequence is closed.
+
+### Comments and Formatting
+
+```fortran
+call yaml_comment('This is a comment')           ! # This is a comment
+call yaml_comment('Section Header', hfill='~')   ! fills line with ~
+call yaml_comment('Separator', hfill='=')         ! fills line with =
+call yaml_newline()                               ! blank line
+
+! Tabbing for column alignment
+call yaml_map('Energy', etot, tabbing=40)         ! colon at column 40
+```
+
+### Documents
+
+```fortran
+call yaml_new_document()    ! starts a new YAML document (---)
 ! ... content ...
 call yaml_release_document()
+```
+
+### Output Streams
+
+By default, YAML goes to stdout. You can redirect to a file unit:
+
+```fortran
+call yaml_set_stream(unit=unt, filename='output.yaml')
+! ... all subsequent yaml_* calls go to this unit ...
+call yaml_close_stream(unit=unt)
+```
+
+All `yaml_*` routines accept an optional `unit=` parameter to target a specific stream.
+
+### Advance Control
+
+The `advance` parameter controls whether a newline is appended:
+- `advance='yes'` (default in block mode): end with newline
+- `advance='no'` (default in flow mode): continue on same line
+
+In flow mode, advance automatically defaults to `'no'` so everything stays on one line. In block mode, it defaults to `'yes'`.
+
+### Number Formatting Defaults
+
+| Type | Default Format | Example |
+|------|---------------|---------|
+| Integer | `(i0)` | `42` |
+| Real (single) | `(1pe18.9)` | `4.200000000E+01` |
+| Real (double) | `(1pg26.16e3)` | `42.00000000000000` |
+| Logical | Yes/No | `Yes` |
+
+Override with `fmt=`:
+```fortran
+call yaml_map('Energy', etot, fmt='(f12.6)')    ! -42.500000
+call yaml_map('Coord', x, fmt='(es10.3)')       ! 1.234E+00
 ```
 
 ### Dumping a Dictionary as YAML
 
 ```fortran
-call yaml_dict_dump(dict)                     ! to stdout
+call yaml_dict_dump(dict)                     ! to stdout, block style
 call yaml_dict_dump(dict, unit=unt)           ! to file unit
-call yaml_dict_dump(dict, flow=.true.)        ! compact style
+call yaml_dict_dump(dict, flow=.true.)        ! compact flow style
+call yaml_dict_dump(dict, verbatim=.true.)    ! with debug comments
 ```
+
+When `flow=.true.`, `yaml_dict_dump` uses intelligent auto-detection: small leaf-level dictionaries (1-5 scalar entries) are rendered inline as `{ }`, while larger or nested structures remain in block style.
 
 **Note:** `yaml_dict_dump` writes into the current YAML stream. If called inside an already-open mapping, the output merges into that context. For clean standalone output, call it outside of any open mapping/sequence.
 
@@ -530,11 +658,16 @@ use yaml_strings
 
 character(len=256) :: s
 
-s = yaml_toa(42)           ! integer to string
-s = yaml_toa(3.14d0)       ! double to string
-s = yaml_toa(.true.)       ! logical to string
-s = yaml_toa((/1,2,3/))   ! array to string
+s = yaml_toa(42)           ! integer to string: "42"
+s = yaml_toa(3.14d0)       ! double to string: " 3.140000000000000"
+s = yaml_toa(.true.)       ! logical to string: "Yes"
+s = yaml_toa((/1,2,3/))   ! array to string: "[ 1, 2, 3 ]"
+
+! With custom format
+s = yaml_toa(3.14d0, fmt='(f6.2)')   ! " 3.14"
 ```
+
+`yaml_toa` supports integer, long integer, real, double, logical, complex, character, and 1D arrays of integer, double, and logical. The result is a trimmed string (max 95 characters). For arrays, it produces a flow-style `[ ... ]` string. Useful for constructing formatted strings or passing to `yaml_sequence`.
 
 ### String Operations
 
@@ -686,6 +819,8 @@ end subroutine
 | Try-catch | `call f_err_open_try()` ... `call f_err_close_try(exc)` |
 | YAML output | `call yaml_map('key', value)` |
 | YAML section | `call yaml_mapping_open('S')` ... `call yaml_mapping_close()` |
+| YAML flow map | `call yaml_mapping_open('S', flow=.true.)` ... `call yaml_mapping_close()` |
+| YAML flow seq | `call yaml_sequence_open('L', flow=.true.)` ... `call yaml_sequence_close()` |
 | Parse YAML | `call yaml_parse_from_file(d, 'file.yaml')` |
 | Timer | `t0 = f_time()` ... `elapsed = f_time() - t0` |
 | Profile timing | `call f_profile(cat_id)` ... `call f_profile_end(cat_id)` |
