@@ -17,6 +17,26 @@ Or test locally:
 claude --plugin-dir /path/to/bigdft-skills
 ```
 
+### Codex (Experimental)
+
+You can also install skills from this repository directly into Codex.
+
+For a project-local install:
+
+```bash
+mkdir -p .codex/skills
+python3 ~/.codex/skills/.system/skill-installer/scripts/install-skill-from-github.py \
+  --repo william-dawson/bigdft-skills \
+  --path skills/input \
+  --dest "$PWD/.codex/skills"
+CODEX_HOME="$PWD/.codex" codex
+```
+
+Replace `skills/input` with the skill path you want from this repository.
+You can pass multiple `--path` values to install several skills at once.
+
+For a global install, omit `--dest` and start Codex normally.
+
 ## Skills
 
 Skills are invoked via `/bigdft:<skill-name>`.
