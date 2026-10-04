@@ -305,6 +305,13 @@ inp["import"] = ["linear", "linear_purify"]
 inp.set_ntpoly(thresh_dens=1e-6, conv_dens=1e-4)
 ```
 
+`linear_purify` is an **overlay on `linear`, not a standalone profile** -- its
+own description reads "extra parameters for linear". Import both, in that
+order. Importing it alone does not fail: it runs and returns a different
+answer, because none of `linear`'s convergence settings are present. On water,
+`[linear, linear_purify]` gave -17.2007337733 while `linear_purify` alone gave
+-17.2184639848, 17 mHa apart with no warning.
+
 `linear_purify` is complete in itself -- it sets `linear_method: NTPOLY` plus
 four `chess: ntpoly` thresholds, and nothing else:
 

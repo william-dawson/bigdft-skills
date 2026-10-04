@@ -171,6 +171,10 @@ writing a `lin_kernel` block:**
 import: [linear, linear_purify]
 ```
 
+Import **both**: `linear_purify` is an overlay on `linear`, not a standalone
+profile. Alone it still runs but silently loses `linear`'s convergence
+settings and returns a different energy (17 mHa, on water).
+
 It sets `linear_method: NTPOLY` plus the `chess: ntpoly` thresholds and nothing
 else. Do **not** add `nit` or `rpnrm_cv` -- the profile omits them on purpose
 and they change the energy by ~1e-9. `temperature` is ignored by purification.
