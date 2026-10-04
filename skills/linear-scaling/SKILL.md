@@ -213,8 +213,7 @@ lin_basis:
   gnrm_cv: [4.e-2, 1.e-2]
 
 lin_kernel:
-  linear_method: FOE    # or DIAG, NTPOLY, DIRMIN
-                        # for NTPOLY prefer `import: [linear, linear_purify]`
+  linear_method: FOE    # CheSS -- the default and the recommended solver
   rpnrm_cv: 1.e-8
 
 lin_basis_params:
@@ -252,13 +251,49 @@ ig_occupation:
 
 ## Choosing the Kernel Solver
 
-`lin_kernel.linear_method` selects the density-kernel solver: `DIAG` (default),
-`DIRMIN`, `NTPOLY`, `FOE`.
+`lin_kernel.linear_method` selects the density-kernel solver: `FOE`, `DIAG`,
+`NTPOLY`, `DIRMIN`.
+
+**Default to CheSS/FOE. It is the supported path and the one that works best
+in practice.** The `linear` profile already selects it, so for almost every
+calculation the answer is simply:
+
+```yaml
+import: linear
+```
+
+Do not reach for another solver unless there is a specific reason. If a user
+asks for NTPoly or DIRMIN without saying why, check whether CheSS has actually
+been tried first.
 
 **Reach for a profile before writing a `lin_kernel` block by hand.** Profiles
 carry convergence settings that hand-written blocks usually get wrong.
 
-### NTPoly -> use `linear_purify`
+### FOE (CheSS) -- the default
+
+Comes with `import: linear`. Its own tolerances live under `chess: foe:`:
+
+```yaml
+chess:
+  foe:
+    fscale: 5.0e-2           # decay length of the error function
+    ef_interpol_det: 1.0e-12
+```
+
+`rloc_kernel_foe` in `lin_basis_params` is the FOE matrix-vector cutoff and
+only matters here.
+
+### DIAG
+
+Diagonalisation with density mixing. Fine for small systems and useful as a
+reference to check another solver against, but it does not scale -- it is not
+the linear-scaling path.
+
+### NTPOLY -- alternative, when CheSS will not do
+
+NTPoly is available but **does not perform as well as CheSS**; treat it as a
+fallback rather than an upgrade. When it is genuinely wanted, select it with
+the profile:
 
 ```yaml
 import: [linear, linear_purify]
@@ -281,7 +316,7 @@ four `chess: ntpoly` thresholds, and nothing else:
 - **`temperature` is ignored** by the purification path. Setting it does
   nothing.
 
-The minimal working input really is one line:
+The minimal working input is one line:
 
 ```yaml
 lin_kernel: {linear_method: NTPOLY}
@@ -332,11 +367,12 @@ coeff_scaling_factor  delta_pnrm  diag_start
 
 ### Sanity check
 
-FOE and NTPoly are different algorithms for the same object, so they should
-agree closely. Via profiles on water: `import: linear` (FOE) gave
--17.2007337735 and `import: [linear, linear_purify]` gave -17.2007337733 --
-2e-10 apart. If your two numbers disagree by much more than that, the
-convergence settings are the suspect, not the solver.
+If you do run an alternative solver, check it against FOE -- they compute the
+same object, so they should agree closely. Via profiles on water:
+`import: linear` (FOE) gave -17.2007337735 and `import: [linear,
+linear_purify]` (NTPoly) gave -17.2007337733, 2e-10 apart. That was a
+three-atom test; agreement on a toy system says the input is right, not that
+the solver will hold up on a real one.
 
 ### Using the Linear Profile
 
