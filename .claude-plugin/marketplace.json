@@ -4,15 +4,28 @@
     "name": "William Dawson"
   },
   "metadata": {
-    "description": "Claude Code skills for the BigDFT electronic structure code"
+    "description": "Moved to BigDFT-group/BigDFT-Agents. This marketplace now serves the plugins from there."
   },
   "plugins": [
     {
       "name": "bigdft",
-      "source": "./",
-      "version": "0.12.1",
-      "description": "Skills for working with the BigDFT electronic structure code - setup, input generation, output parsing, and PyBigDFT workflows.",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/BigDFT-group/BigDFT-Agents",
+        "path": "plugins/bigdft"
+      },
+      "description": "Install BigDFT, generate input files, build PyBigDFT systems, configure pseudopotentials and linear scaling, and parse logfile output.",
       "keywords": ["bigdft", "dft", "electronic-structure", "pybigdft", "computational-chemistry", "wavelets"]
+    },
+    {
+      "name": "bigdft-dev",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/BigDFT-group/BigDFT-Agents",
+        "path": "plugins/bigdft-dev"
+      },
+      "description": "Developer guides for BigDFT's Fortran internals: Futile, ATlab, liborbs, PSolver, KB projectors, and the input-variable pipeline.",
+      "keywords": ["bigdft", "fortran", "futile", "atlab", "liborbs", "psolver"]
     }
   ]
 }

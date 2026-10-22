@@ -1,63 +1,32 @@
 # bigdft-skills
 
-> **Warning:** This plugin is under active development and not yet ready for general use. Skills may be incomplete, produce incorrect input, or change without notice. Use at your own risk.
+> **Moved.** Development continues at
+> **[BigDFT-group/BigDFT-Agents](https://github.com/BigDFT-group/BigDFT-Agents)**.
 
-A Claude Code plugin providing skills for working with the [BigDFT](https://bigdft.org) electronic structure code.
+This repository is kept only so that existing installs keep working: the
+marketplace here now serves the `bigdft` and `bigdft-dev` plugins directly
+from `BigDFT-group/BigDFT-Agents`, so `/plugin update` picks up current content without any change
+on your side.
+
+The skills previously kept in this repository's `skills/` directory have been
+removed, because a second copy inevitably drifts from the real one — which is
+exactly what happened. Anything that was here is in `BigDFT-group/BigDFT-Agents` now, renamed with a
+`bigdft-` prefix and split across two plugins:
+
+| plugin | skills |
+|---|---|
+| `bigdft` | install, input, systems, pseudopotentials, linear-scaling, logfile |
+| `bigdft-dev` | futile, atlab, liborbs, psolver, projectors, variables, linear-scaling internals |
+
+The RemoteManager skills (previously `remote` and `dataset`) now live in the
+separate `remotemanager` plugin in that repository.
 
 ## Installation
 
 ```
-/plugin marketplace add william-dawson/bigdft-skills
-/plugin install bigdft@bigdft-skills
+/plugin marketplace add BigDFT-group/BigDFT-Agents
+/plugin install bigdft@bigdft-agents-marketplace
 ```
 
-Or test locally:
-
-```
-claude --plugin-dir /path/to/bigdft-skills
-```
-
-### Codex (Experimental)
-
-You can also install skills from this repository directly into Codex.
-
-For a project-local install:
-
-```bash
-mkdir -p .codex/skills
-python3 ~/.codex/skills/.system/skill-installer/scripts/install-skill-from-github.py \
-  --repo william-dawson/bigdft-skills \
-  --path skills/input \
-  --dest "$PWD/.codex/skills"
-CODEX_HOME="$PWD/.codex" codex
-```
-
-Replace `skills/input` with the skill path you want from this repository.
-You can pass multiple `--path` values to install several skills at once.
-
-For a global install, omit `--dest` and start Codex normally.
-
-## Skills
-
-Skills are invoked via `/bigdft:<skill-name>`.
-
-| Skill | Description |
-|-------|-------------|
-| `/bigdft:install` | Guide installation of BigDFT from source. Detects platform/compilers, generates an rcfile, and walks through the build. |
-| `/bigdft:input` | Generate BigDFT input files (YAML or Python). Walks through calculation type, system, DFT parameters, and advanced options. |
-| `/bigdft:remote` | Set up a remote connection to an HPC system (URL/Computer, SSH, SLURM templates). |
-| `/bigdft:dataset` | Create and manage RemoteManager Dataset workflows for remote execution of Python functions. |
-| `/bigdft:futile` | Developer guide for the Futile library: dictionaries, memory management, YAML I/O, error handling, timing, MPI wrappers. |
-| `/bigdft:variables` | Add or modify input variables in BigDFT, CheSS, or PSolver. Full pipeline from YAML definition to Fortran access. |
-| `/bigdft:logfile` | Parse and analyze BigDFT logfile output. Extract energies, forces, eigenvalues, convergence data, and more. |
-| `/bigdft:systems` | Build and manipulate atomic systems with Atom, Fragment, and System classes. Structure I/O, fragmentation, and analysis. |
-| `/bigdft:pseudopotentials` | Set up pseudopotentials: Python API, command-line file copying, PSP formats, and electron count implications. |
-| `/bigdft:linear-scaling` | Configure linear scaling: lin_basis_params, ig_occupation, adding new elements, nbasis/rloc selection. |
-| `/bigdft:liborbs` | Developer guide for liborbs: localization regions, wavelet compression, views abstraction, operator application, and MPI/GPU. |
-| `/bigdft:atlab` | Developer guide for ATlab: simulation domains, grid cells, box iterators, multipoles, spherical harmonics, field I/O. |
-| `/bigdft:psolver` | Developer guide for PSolver: Poisson equation, Hartree potential, FFT algorithm, boundary conditions, implicit solvation, GPU. |
-| `/bigdft:projectors` | KB pseudopotential projectors: HGH radial functions, h_ij coupling matrix, psppar layout, normalization, computing nonlocal matrix elements. |
-
-## Development
-
-The `bigdft-suite/` directory contains a clone of the BigDFT source for reference during skill development. It is gitignored and not part of this repository.
+Installing from this marketplace still works and resolves to the same content,
+but prefer the line above so the indirection eventually disappears.
